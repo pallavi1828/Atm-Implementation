@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ATM Simulator</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(to right, #1e3c72, #2a5298);
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+    }
+    .atm-container {
+      background-color: #0f1b2d;
+      padding: 30px;
+      border-radius: 15px;
+      width: 90%;
+      max-width: 400px;
+      box-shadow: 0 0 20px rgba(0,0,0,0.7);
+    }
+    input, button {
+      width: 100%;
+      padding: 10px;
+      margin-top: 15px;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+    }
+    input {
+      background-color: #dcdde1;
+      color: #2f3640;
+    }
+    button {
+      background-color: #40739e;
+      color: white;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #487eb0;
+    }
+    .hidden {
+      display: none;
+    }
+    .alert {
+      color: #f6e58d;
+      margin-top: 10px;
+      text-align: center;
+    }
+    select {
+      width: 100%;
+      padding: 10px;
+      margin-top: 15px;
+      border-radius: 8px;
+    }
+    .disabled-input {
+      pointer-events: none;
+      opacity: 0.6;
+    }
+  </style>
+</head>
+<body>
+  <div class="atm-container">
+    <h2>ATM Simulator</h2>
+
+    <div id="pin-section">
+      <input type="password" id="pin-input" placeholder="Enter your 4-digit PIN" maxlength="4" autofocus />
+      <button onclick="verifyPin()" id="pin-button">Enter</button>
+      <div class="alert" id="pin-alert"></div>
+    </div>
+
+    <div id="menu-section" class="hidden">
+      <select id="menu-options" onchange="handleSelection(this.value)">
+        <option value="">-- Select Transaction --</option>
+        <option value="balance">Check Balance</option>
+        <option value="deposit">Deposit</option>
+        <option value="withdraw">Withdraw</option>
+        <option value="details">Account Details</option>
+        <option value="pin">Change PIN</option>
+        <option value="exit">Exit</option>
+      </select>
+      <div id="menu-output"></div>
+    </div>
+  </div>
+
+  <script>
+    let correctPin = "1234";
+    let balance = 10000.00;
+    let attempts = 0;
+    let countdownInterval;
+
+    const pinInput = document.getElementById("pin-input");
+    const pinButton = document.getElementById("pin-button");
+    const pinAlert = document.getElementById("pin-alert");
+
+    function verifyPin() {
+      const enteredPin = pinInput.value.trim();
+
+      if (enteredPin === correctPin) {
+        document.getElementById("pin-section").classList.add("hidden");
+        document.getElementById("menu-section").classList.remove("hidden");
+      } else {
+        attempts++;
+        if (attempts >= 3) {
+          pinAlert.innerText = "Too many attempts. Please wait 30 seconds before trying again.";
+          pinInput.disabled = true;
+          pinButton.disabled = true;
+          let timeLeft = 30;
+          countdownInterval = setInterval(() => {
+            if (timeLeft > 0) {
+              pinAlert.innerText = `Too many attempts. Please wait ${timeLeft} seconds before trying again.`;
+              timeLeft--;
+            } else {
+              clearInterval(countdownInterval);
+              attempts = 0;
+              pinInput.disabled = false;
+              pinButton.disabled = false;
+              pinInput.value = "";
+              pinAlert.innerText = "You can try again now. Please enter your PIN.";
+              pinInput.focus();
+            }
+          }, 1000);
+        } else {
+          pinAlert.innerText = `Incorrect PIN. Attempt ${attempts}/3.`;
+          pinInput.value = "";
+          pinInput.focus();
+        }
+      }
+    }
+
+    pinInput.addEventListener("keypress", function (event) {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        verifyPin();
+      }
+    });
+
+    function handleSelection(value) {
+      const output = document.getElementById("menu-output");
+      output.innerHTML = "";
+      if (value === "balance") {
+        output.innerText = `Current Balance: ₹${balance.toFixed(2)}`;
+      } else if (value === "deposit") {
+        const amount = prompt("Enter amount to deposit:");
+        if (amount && !isNaN(amount) && Number(amount) > 0) {
+          balance += Number(amount);
+          output.innerText = `Deposited ₹${amount}. New Balance: ₹${balance.toFixed(2)}`;
+        } else {
+          output.innerText = "Invalid deposit amount.";
+        }
+      } else if (value === "withdraw") {
+        const amount = prompt("Enter amount to withdraw:");
+        if (amount && !isNaN(amount) && Number(amount) > 0 && Number(amount) <= 25000) {
+          if (Number(amount) <= balance) {
+            balance -= Number(amount);
+            output.innerText = `Withdrawn ₹${amount}. Remaining Balance: ₹${balance.toFixed(2)}`;
+          } else {
+            output.innerText = "Insufficient balance.";
+          }
+        } else {
+          output.innerText = "Invalid or over-limit withdrawal amount.";
+        }
+      } else if (value === "details") {
+        output.innerHTML = `Account Holder: Pallavi<br>Balance: ₹${balance.toFixed(2)}<br>Type: Savings Account`;
+      } else if (value === "pin") {
+        let otpAttempts = 0;
+        function promptOtp() {
+          const otp = prompt("Enter OTP to verify identity:");
+          if (otp === "8989") {
+            const newPin = prompt("Enter your new 4-digit PIN:");
+            if (newPin && newPin.length === 4) {
+              correctPin = newPin;
+              output.innerText = "PIN changed successfully.";
+            } else {
+              output.innerText = "Invalid new PIN.";
+            }
+          } else {
+            otpAttempts++;
+            if (otpAttempts >= 1) {
+              output.innerText = " Incorrect OTP attempt. Please wait 10 seconds.";
+              let otpTimeLeft = 10;
+              const otpTimer = setInterval(() => {
+                if (otpTimeLeft > 0) {
+                  output.innerText = `Please wait ${otpTimeLeft} seconds before trying again.`;
+                  otpTimeLeft--;
+                } else {
+                  clearInterval(otpTimer);
+                  output.innerText = "You can try again now. Enter OTP.";
+                  setTimeout(() => promptOtp(), 100);
+                }
+              }, 1000);
+            } else {
+              output.innerText = "Incorrect OTP. Please try again.";
+              setTimeout(() => promptOtp(), 500);
+            }
+          }
+        }
+        promptOtp();
+      } else if (value === "exit") {
+        location.reload();
+      }
+    }
+  </script>
+</body>
+</html>
